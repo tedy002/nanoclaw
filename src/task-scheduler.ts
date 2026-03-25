@@ -1,6 +1,7 @@
 import { ChildProcess } from 'child_process';
 import { CronExpressionParser } from 'cron-parser';
 import fs from 'fs';
+import path from 'path';
 
 import { ASSISTANT_NAME, SCHEDULER_POLL_INTERVAL, TIMEZONE } from './config.js';
 import {
@@ -216,6 +217,19 @@ async function runTask(
     if (closeTimer) clearTimeout(closeTimer);
     error = err instanceof Error ? err.message : String(err);
     logger.error({ taskId: task.id, error }, 'Task failed');
+  }
+
+  if (result) {
+    const briefPath = path.join(groupDir, 'last-brief.md');
+    const header = `<!-- task: ${task.id} | date: ${new Date().toISOString()} -->\n\n`;
+    try {
+      fs.writeFileSync(briefPath, header + result, 'utf8');
+    } catch (writeErr) {
+      logger.warn(
+        { taskId: task.id, error: String(writeErr) },
+        'Failed to write last-brief.md',
+      );
+    }
   }
 
   const durationMs = Date.now() - startTime;
